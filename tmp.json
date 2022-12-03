@@ -1,0 +1,85 @@
+{
+    "pagination": {
+        "totalPages": 1,
+        "pageSize": 1,
+        "page": 0,
+        "totalElements": 3
+    },
+    "content": [
+        {
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "type": "ALLOWED_VALUES",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "name": "some description",
+            "allowedValues": [
+                1,
+                2
+            ],
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedAt": "2018-11-13T22:08:20.257Z",
+            "updatedBy": "test user"
+        },
+        {
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedBy": "test",
+            "name": "some description",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "type": "STRING",
+            "updatedAt": "2018-11-13T22:08:20.257Z"
+        },
+        {
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedBy": "test",
+            "name": "some description",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "type": "STRING",
+            "updatedAt": "2018-11-13T22:08:20.257Z"
+        }
+    ]
+}
+
+{
+    "content": [
+        {
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "type": "ALLOWED_VALUES",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "name": "some description",
+            "allowedValues": [
+                "1",
+                "2"
+            ],
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedAt": "2018-11-13T22:08:20.257Z",
+            "updatedBy": "test user"
+        },
+        {
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "name": "some description",
+            "type": "STRING",
+            "allowedValues": null,
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedAt": "2018-11-13T22:08:20.257Z",
+            "updatedBy": "test"
+        },
+        {
+            "labelAttributeId": "5c90c9c3-0186-41ed-b432-08657ae0c316",
+            "vendorId": "5c90c9c3-0186-41ed-b432-08657ae0c317",
+            "name": "some description",
+            "type": "STRING",
+            "allowedValues": null,
+            "createdAt": "2018-05-13T22:08:20.257Z",
+            "updatedAt": "2018-11-13T22:08:20.257Z",
+            "updatedBy": "test"
+        }
+    ],
+    "pagination": {
+        "page": 0,
+        "pageSize": 1,
+        "totalElements": 3,
+        "totalPages": 1
+    }
+}
