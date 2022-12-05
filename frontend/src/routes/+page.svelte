@@ -3,33 +3,37 @@
 	import Beer from '$lib/images/beer.svg';
 	import Dash from '$lib/images/dash.svg';
 	import Question from '$lib/images/question-mark.svg';
+	import { onMount } from 'svelte';
 
 	let buttonSelected = new Array(9).fill(0);
 
 	let state = {
-		players: [
-			{
-				name: 'Juliano Decico Negri',
-				status: -1
-			},
-			{
-				name: 'Witchy Woman',
-				status: -1
-			},
-			{
-				name: 'Shining Star',
-				status: -3
-			},
-			{
-				name: 'Shining Star',
-				status: 0
-			},
-			{
-				name: 'Shining Star',
-				status: 13
-			}
-		]
+		players: []
 	};
+	// let state = {
+	// 	players: [
+	// 		{
+	// 			name: 'Juliano Decico Negri',
+	// 			status: -1
+	// 		},
+	// 		{
+	// 			name: 'Witchy Woman',
+	// 			status: -1
+	// 		},
+	// 		{
+	// 			name: 'Shining Star',
+	// 			status: -3
+	// 		},
+	// 		{
+	// 			name: 'Shining Star',
+	// 			status: 0
+	// 		},
+	// 		{
+	// 			name: 'Shining Star',
+	// 			status: 13
+	// 		}
+	// 	]
+	// };
 
 	function changeClickedButton(n: number) {
 		buttonSelected = buttonSelected.map((val, idx) => idx == n);
@@ -44,6 +48,25 @@
 	function onShow() {
 		// send show to backend
 	}
+	const SSE_LOCAL_URL = 'http://127.0.0.1:3000/sse?room=101&name=juliano';
+	onMount(() => {
+		const source = new EventSource(SSE_LOCAL_URL);
+		source.onopen = () => {
+			console.log('event opened');
+		};
+		source.onmessage = ({ data }) => {
+			state = JSON.parse(data);
+			console.log('onmessage ', data);
+		};
+		source.onerror = (error) => console.log('source error ', error);
+
+		return () => {
+			if (source.readyState === 1) {
+				source.close();
+			}
+			console.log('HERE');
+		};
+	});
 </script>
 
 <svelte:head>

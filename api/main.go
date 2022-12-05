@@ -1,34 +1,42 @@
 package main
 
 import (
-	"embed"
-	"encoding/json"
-	"io/fs"
-	"net/http"
+	"github.com/glebarez/sqlite"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"gorm.io/gorm"
 )
 
-//go:embed build
-var embeddedFiles embed.FS
+func InitApp(db *gorm.DB) *fiber.App {
+	app := fiber.New()
 
-func databases(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") // for CORS
-	w.WriteHeader(http.StatusOK)
-	test := []string{}
-	test = append(test, "Hello")
-	test = append(test, "World")
-	json.NewEncoder(w).Encode(test)
+	// CORS for external resources
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Cache-Control",
+	}))
+
+	controller := Controller{
+		s: &Service{
+			repo: &Repository{
+				db: db,
+			},
+			broadcaster: NewBroadcaster(),
+		},
+	}
+
+	app.Get("/sse", controller.UpdateState)
+
+	return app
+
 }
 
 func main() {
-
-	fsys, err := fs.Sub(embeddedFiles, "build")
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db.AutoMigrate(&Users{})
 	if err != nil {
 		panic(err)
 	}
-
-	http.Handle("/", http.FileServer(http.FS(fsys)))
-	http.Handle("/test", http.HandlerFunc(databases))
-
-	http.ListenAndServe(":8050", nil)
+	app := InitApp(db)
+	app.Listen(":3000")
 }
