@@ -13,9 +13,9 @@ func (r *Repository) Save(model interface{}) error {
 	return r.db.Create(model).Error
 
 }
-func (r *Repository) DeleteById(model *Users) error {
+func (r *Repository) DeleteById(model interface{}, id uint) error {
 
-	return r.db.Delete(&Users{}, model.ID).Error
+	return r.db.Delete(model, id).Error
 
 }
 
@@ -23,7 +23,7 @@ func (r *Repository) GetPlayersFromRoom(roomId uint) ([]Users, error) {
 
 	var users []Users
 
-	err := r.db.Where(&Users{Room: roomId}).Find(&users).Error
+	err := r.db.Where(&Users{RoomID: roomId}).Find(&users).Error
 
 	return users, err
 }

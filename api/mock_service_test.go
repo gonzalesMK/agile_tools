@@ -5,6 +5,7 @@
 package main
 
 import (
+	bufio "bufio"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -33,32 +34,32 @@ func (m *MockServiceInterface) EXPECT() *MockServiceInterfaceMockRecorder {
 	return m.recorder
 }
 
-// CreatePlayer mocks base method.
-func (m *MockServiceInterface) CreatePlayer(name string, status int8, roomId uint) (*Players, *chan []byte, error) {
+// Subscribe mocks base method.
+func (m *MockServiceInterface) Subscribe(playerSubscribe *PlayerSubscribe) (func(*bufio.Writer), error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePlayer", name, status, roomId)
-	ret0, _ := ret[0].(*Players)
-	ret1, _ := ret[1].(*chan []byte)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "Subscribe", playerSubscribe)
+	ret0, _ := ret[0].(func(*bufio.Writer))
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// CreatePlayer indicates an expected call of CreatePlayer.
-func (mr *MockServiceInterfaceMockRecorder) CreatePlayer(name, status, roomId interface{}) *gomock.Call {
+// Subscribe indicates an expected call of Subscribe.
+func (mr *MockServiceInterfaceMockRecorder) Subscribe(playerSubscribe interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePlayer", reflect.TypeOf((*MockServiceInterface)(nil).CreatePlayer), name, status, roomId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockServiceInterface)(nil).Subscribe), playerSubscribe)
 }
 
-// DeletePlayer mocks base method.
-func (m *MockServiceInterface) DeletePlayer(player *Players, room uint) error {
+// UpsertPlayer mocks base method.
+func (m *MockServiceInterface) UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePlayer", player, room)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "UpsertPlayer", playerRequest)
+	ret0, _ := ret[0].(*PlayerResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// DeletePlayer indicates an expected call of DeletePlayer.
-func (mr *MockServiceInterfaceMockRecorder) DeletePlayer(player, room interface{}) *gomock.Call {
+// UpsertPlayer indicates an expected call of UpsertPlayer.
+func (mr *MockServiceInterfaceMockRecorder) UpsertPlayer(playerRequest interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePlayer", reflect.TypeOf((*MockServiceInterface)(nil).DeletePlayer), player, room)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertPlayer", reflect.TypeOf((*MockServiceInterface)(nil).UpsertPlayer), playerRequest)
 }

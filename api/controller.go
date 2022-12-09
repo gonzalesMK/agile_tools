@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/labstack/gommon/log"
@@ -14,15 +12,42 @@ type Controller struct {
 	s ServiceInterface
 }
 
-type PlayerConfig struct {
+type PlayerResponse struct {
+	ID uint `json:"id"`
+}
+
+type PlayerRequest struct {
+	ID     uint   `json:"id"`
+	Name   string `json:"name"`
+	RoomID uint   `json:"room"`
+	Status int8   `json:"status"`
+}
+
+type PlayerSubscribe struct {
 	Name   string `query:"name"`
-	RoomId uint   `query:"room"`
+	RoomID uint   `query:"room"`
 }
 
 //go:generate mockgen -source=$GOFILE -destination=mock_service_test.go -package=main
 type ServiceInterface interface {
-	CreatePlayer(name string, status int8, roomId uint) (*Players, *chan []byte, error)
-	DeletePlayer(player *Players, room uint) error
+	UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, error)
+	Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Writer), error)
+}
+
+func (s *Controller) UpsertPlayer(c *fiber.Ctx) error {
+	request := new(PlayerRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	playerResponse, err := s.s.UpsertPlayer(request)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(playerResponse)
 }
 
 func (s *Controller) UpdateState(c *fiber.Ctx) error {
@@ -32,58 +57,19 @@ func (s *Controller) UpdateState(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
-	conf := new(PlayerConfig)
+	conf := new(PlayerSubscribe)
 	if err := c.QueryParser(conf); err != nil {
 		log.Error(err)
 		return err
 	}
 
-	player, channel, dbErr := s.s.CreatePlayer(conf.Name, -1, conf.RoomId)
+	updater, dbErr := s.s.Subscribe(conf)
 	if dbErr != nil {
 		log.Error(dbErr)
 		return dbErr
 	}
 
-	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		timeout := make(chan bool, 1)
-		go func() {
-			for {
-				timeout <- true
-				time.Sleep(time.Second)
-			}
-		}()
-	Loop:
-		for {
-			select {
-
-			case content := <-(*channel):
-				fmt.Println("Sent data: ", player.ID)
-				w.Write([]byte("data: "))
-				w.Write(content)
-				w.Write([]byte("\n\n"))
-				err := w.Flush()
-				fmt.Println("Flushed data", player.ID)
-
-				if err != nil {
-					break Loop
-				}
-
-			case <-timeout:
-				w.Write([]byte("\n\n"))
-				err := w.Flush()
-				fmt.Println("HERE ", player.ID)
-				if err != nil {
-					fmt.Println("Error ", err)
-					break Loop
-				}
-			}
-		}
-
-		log.Info("Closed a connection", player.ID)
-		if err := s.s.DeletePlayer(player, conf.RoomId); err != nil {
-			log.Error(err)
-		}
-	}))
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(updater))
 
 	return nil
 }

@@ -34,17 +34,17 @@ func (m *MockRepoInterface) EXPECT() *MockRepoInterfaceMockRecorder {
 }
 
 // DeleteById mocks base method.
-func (m *MockRepoInterface) DeleteById(arg0 *Users) error {
+func (m *MockRepoInterface) DeleteById(model interface{}, id uint) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteById", arg0)
+	ret := m.ctrl.Call(m, "DeleteById", model, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteById indicates an expected call of DeleteById.
-func (mr *MockRepoInterfaceMockRecorder) DeleteById(arg0 interface{}) *gomock.Call {
+func (mr *MockRepoInterfaceMockRecorder) DeleteById(model, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteById", reflect.TypeOf((*MockRepoInterface)(nil).DeleteById), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteById", reflect.TypeOf((*MockRepoInterface)(nil).DeleteById), model, id)
 }
 
 // GetPlayersFromRoom mocks base method.

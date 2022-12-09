@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetUpdateState(t *testing.T) {
+func TestSubscribe(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -19,35 +23,60 @@ func TestGetUpdateState(t *testing.T) {
 	controller := Controller{
 		s: service,
 	}
-	channel := make(chan []byte, 1)
-	player := &Players{
-		ID:     1,
-		Name:   "Santhia Witchy",
-		Status: -3,
+
+	request := &PlayerSubscribe{
+		Name:   "developer",
+		RoomID: uint(123),
 	}
 
 	service.
 		EXPECT().
-		CreatePlayer(gomock.Eq("developer"), gomock.Eq(int8(-1)), gomock.Eq(uint(123))).
-		Return(player, &channel, nil)
-	service.
-		EXPECT().
-		DeletePlayer(gomock.Any(), gomock.Eq(uint(123))).
-		Return(nil)
+		Subscribe(gomock.Eq(request)).
+		Return(func(b *bufio.Writer) { b.Write([]byte("AB")); b.Flush() }, nil)
 
 	app := fiber.New()
 	app.Get("/", controller.UpdateState)
 
 	req := httptest.NewRequest("GET", "/?room=123&name=developer", nil)
 
-	// Test
-	channel <- []byte{'A', 'B'}
-
-	close(channel)
-
 	resp, err := app.Test(req, 1000)
 
 	assert.Nil(t, err)
 	bytes, _ := io.ReadAll(resp.Body)
-	assert.Equal(t, "data: AB\n\n", string(bytes))
+	assert.Equal(t, "AB", string(bytes))
+}
+
+func TestUpsertPlayerController(t *testing.T) {
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service := NewMockServiceInterface(ctrl)
+	controller := Controller{
+		s: service,
+	}
+
+	request := PlayerRequestMocks{}.AllFields()
+	response := PlayerResponseMocks{}.AllFields()
+
+	service.
+		EXPECT().
+		UpsertPlayer(gomock.Eq(request)).
+		Return(response, nil)
+
+	app := fiber.New()
+	app.Post("/", controller.UpsertPlayer)
+
+	content, err := json.Marshal(request)
+	assert.Nil(t, err)
+	fmt.Println(string(content))
+	req := httptest.NewRequest("POST", "/", bytes.NewReader(content))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req, 1000)
+
+	assert.Nil(t, err)
+
+	bytes, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, "{\"id\":123}", string(bytes))
 }

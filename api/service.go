@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"sync"
+	"time"
 
+	"github.com/labstack/gommon/log"
 	"github.com/ulule/deepcopier"
 )
 
@@ -16,35 +19,83 @@ type Service struct {
 //go:generate mockgen -source=$GOFILE -destination=mock_repository_test.go -package=main
 type RepoInterface interface {
 	Save(interface{}) error
-	DeleteById(*Users) error
+	DeleteById(model interface{}, id uint) error
 	GetPlayersFromRoom(uint) ([]Users, error)
 }
 
-func (s *Service) CreatePlayer(name string, status int8, roomID uint) (*Players, *chan []byte, error) {
+func (s *Service) UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, error) {
 
-	user := Users{
-		Name:   name,
-		Status: status,
-		Room:   roomID,
-	}
+	var user Users
+	deepcopier.Copy(playerRequest).To(&user)
 
 	err := s.repo.Save(&user)
-	channel := s.broadcaster.AddSubscriber(roomID, user.ID)
 
-	var player Players
+	var player PlayerResponse
 	deepcopier.Copy(&user).To(&player)
 
-	s.BroadcastRoomStatus(roomID)
-	return &player, channel, err
+	s.BroadcastRoomStatus(user.RoomID)
+
+	return &player, err
 }
 
-func (s *Service) DeletePlayer(player *Players, roomID uint) error {
+func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Writer), error) {
+
 	var user Users
-	deepcopier.Copy(player).To(&user)
-	if err := s.repo.DeleteById(&user); err != nil {
+	deepcopier.Copy(playerSubscribe).To(&user)
+
+	err := s.repo.Save(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	channel := s.broadcaster.AddSubscriber(playerSubscribe.RoomID, user.ID)
+
+	closure := func(w *bufio.Writer) {
+		timeout := make(chan bool, 1)
+		go func() {
+			for {
+				timeout <- true
+				time.Sleep(time.Second)
+			}
+		}()
+	Loop:
+		for {
+			select {
+
+			case content := <-(*channel):
+				w.Write([]byte("data: "))
+				w.Write(content)
+				w.Write([]byte("\n\n"))
+				err := w.Flush()
+
+				if err != nil {
+					break Loop
+				}
+
+			case <-timeout:
+				w.Write([]byte(""))
+				err := w.Flush()
+				if err != nil {
+					break Loop
+				}
+			}
+		}
+
+		if err := s.DeletePlayer(user.ID, playerSubscribe.RoomID); err != nil {
+			log.Error(err)
+		}
+	}
+
+	s.BroadcastRoomStatus(user.RoomID)
+	return closure, nil
+}
+
+func (s *Service) DeletePlayer(playerID, roomID uint) error {
+
+	if err := s.repo.DeleteById(&Users{}, playerID); err != nil {
 		return err
 	}
-	s.broadcaster.DeleteSubscriber(roomID, player.ID)
+	s.broadcaster.DeleteSubscriber(roomID, playerID)
 	return s.BroadcastRoomStatus(roomID)
 }
 

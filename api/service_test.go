@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreatePlayer(t *testing.T) {
+func TestSubscribeToRoom(t *testing.T) {
 	//
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -29,23 +31,29 @@ func TestCreatePlayer(t *testing.T) {
 	users := []Users{
 		{ID: 1, Name: "Santhia Witchy", Status: -3},
 	}
+
+	playerSubscribe := PlayerSubscribeMock{}.AllFields()
+
 	repo.
 		EXPECT().
 		GetPlayersFromRoom(gomock.Eq(uint(123))).
 		Return(users, nil)
 
-	player, channel, err := service.CreatePlayer("Santhia Witchy", -3, 123)
+	subsFunc, err := service.Subscribe(playerSubscribe)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, channel)
+	assert.NotNil(t, subsFunc)
 
-	// Assert player created correctly
-	assert.Exactly(t, &Players{ID: 1, Name: "Santhia Witchy", Status: -3}, player)
-	assert.Equal(t, channel, service.broadcaster.rooms[123].channels[1])
+	// Use closure to get channel result
+	b := new(bytes.Buffer)
+	w := bufio.NewWriter(b)
+
+	go subsFunc(w)
+
+	service.broadcaster.SendMessage(123, []byte(""))
 
 	// Assert channel has message
-	result := <-*channel
-	assert.Equal(t, "{\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}", string(result))
+	assert.Equal(t, "data: {\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}\n\ndata: \n\n", string(b.Bytes()))
 }
 
 func TestDeletePlayer(t *testing.T) {
@@ -59,11 +67,9 @@ func TestDeletePlayer(t *testing.T) {
 
 	repo.
 		EXPECT().
-		DeleteById(gomock.AssignableToTypeOf(&Users{})).
-		DoAndReturn(func(u *Users) error {
-			assert.Equal(t, &Users{ID: 1, Name: "Santhia Witchy", Status: -3}, u)
-			return nil
-		})
+		DeleteById(gomock.AssignableToTypeOf(&Users{}), uint(1)).
+		Return(nil)
+
 	users := []Users{
 		{ID: 1, Name: "Santhia Witchy", Status: -3},
 	}
@@ -72,9 +78,7 @@ func TestDeletePlayer(t *testing.T) {
 		GetPlayersFromRoom(gomock.Eq(uint(123))).
 		Return(users, nil)
 
-	player := &Players{ID: 1, Name: "Santhia Witchy", Status: -3}
-
-	service.DeletePlayer(player, 123)
+	service.DeletePlayer(1, 123)
 
 	assert.Equal(t, len(channel), 0)
 	assert.Nil(t, service.broadcaster.rooms[123].channels[1])
@@ -125,4 +129,35 @@ func TestBroadcastRoomStatusEmpty(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, "{\"players\":[]}", string(result))
+}
+
+func TestUpsertPlayer(t *testing.T) {
+
+	user := UserMocks{}.AllFields()
+	request := PlayerRequestMocks{}.AllFields()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := NewMockRepoInterface(ctrl)
+	channel := make(chan []byte, 1)
+	service := ServiceMock.NewServiceWithChannel(repo, &channel)
+
+	repo.
+		EXPECT().
+		Save(gomock.Eq(user)).
+		Return(nil)
+
+	repo.
+		EXPECT().
+		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		Return(nil, nil)
+
+	player, err := service.UpsertPlayer(request)
+
+	assert.Nil(t, err)
+	assert.Equal(t, uint(123), player.ID)
+
+	resp := <-(*&channel)
+	assert.Equal(t, "{\"players\":[]}", string(resp))
 }
