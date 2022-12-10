@@ -75,3 +75,17 @@ func (mr *MockRepoInterfaceMockRecorder) Save(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRepoInterface)(nil).Save), arg0)
 }
+
+// UpdateFieldById mocks base method.
+func (m *MockRepoInterface) UpdateFieldById(id uint, content interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFieldById", id, content)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFieldById indicates an expected call of UpdateFieldById.
+func (mr *MockRepoInterfaceMockRecorder) UpdateFieldById(id, content interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFieldById", reflect.TypeOf((*MockRepoInterface)(nil).UpdateFieldById), id, content)
+}

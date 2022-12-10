@@ -13,7 +13,7 @@ func InitApp(db *gorm.DB) *fiber.App {
 	// CORS for external resources
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowHeaders: "Cache-Control",
+		AllowHeaders: "Cache-Control,Content-Type",
 	}))
 
 	controller := Controller{
@@ -26,6 +26,7 @@ func InitApp(db *gorm.DB) *fiber.App {
 	}
 
 	app.Get("/sse", controller.UpdateState)
+	app.Post("/player", controller.UpsertPlayer)
 
 	return app
 

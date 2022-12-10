@@ -10,7 +10,13 @@ type Repository struct {
 
 func (r *Repository) Save(model interface{}) error {
 
-	return r.db.Create(model).Error
+	return r.db.Save(model).Error
+
+}
+
+func (r *Repository) UpdateFieldById(id uint, content interface{}) error {
+
+	return r.db.Where("id", id).Updates(content).Error
 
 }
 func (r *Repository) DeleteById(model interface{}, id uint) error {

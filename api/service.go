@@ -19,6 +19,7 @@ type Service struct {
 //go:generate mockgen -source=$GOFILE -destination=mock_repository_test.go -package=main
 type RepoInterface interface {
 	Save(interface{}) error
+	UpdateFieldById(id uint, content interface{}) error
 	DeleteById(model interface{}, id uint) error
 	GetPlayersFromRoom(uint) ([]Users, error)
 }
@@ -28,7 +29,7 @@ func (s *Service) UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, e
 	var user Users
 	deepcopier.Copy(playerRequest).To(&user)
 
-	err := s.repo.Save(&user)
+	err := s.repo.UpdateFieldById(user.ID, &user)
 
 	var player PlayerResponse
 	deepcopier.Copy(&user).To(&player)
@@ -58,6 +59,21 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 				time.Sleep(time.Second)
 			}
 		}()
+
+		// Send own player info
+		var player PlayerResponse
+		deepcopier.Copy(&user).To(&player)
+		content, _ := json.Marshal(player)
+
+		w.Write([]byte("data: "))
+		w.Write(content)
+		w.Write([]byte("\n\n"))
+		if err := w.Flush(); err != nil {
+			if err := s.DeletePlayer(user.ID, playerSubscribe.RoomID); err != nil {
+				log.Error(err)
+			}
+		}
+
 	Loop:
 		for {
 			select {
@@ -73,7 +89,7 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 				}
 
 			case <-timeout:
-				w.Write([]byte(""))
+				w.Write([]byte("\n\n"))
 				err := w.Flush()
 				if err != nil {
 					break Loop

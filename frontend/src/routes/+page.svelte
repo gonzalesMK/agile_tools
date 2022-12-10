@@ -4,40 +4,36 @@
 	import Dash from '$lib/images/dash.svg';
 	import Question from '$lib/images/question-mark.svg';
 	import { onMount } from 'svelte';
+	import { Convert, type Players } from '$lib/playersDto';
 
 	let buttonSelected = new Array(9).fill(0);
 
-	let state = {
+	type PlayerResponse = { id: number };
+
+	let playerId = 0;
+	let name = 'juliano';
+	let roomId = 1;
+	let timeoutId: NodeJS.Timeout;
+
+	let state: Players = {
 		players: []
 	};
-	// let state = {
-	// 	players: [
-	// 		{
-	// 			name: 'Juliano Decico Negri',
-	// 			status: -1
-	// 		},
-	// 		{
-	// 			name: 'Witchy Woman',
-	// 			status: -1
-	// 		},
-	// 		{
-	// 			name: 'Shining Star',
-	// 			status: -3
-	// 		},
-	// 		{
-	// 			name: 'Shining Star',
-	// 			status: 0
-	// 		},
-	// 		{
-	// 			name: 'Shining Star',
-	// 			status: 13
-	// 		}
-	// 	]
-	// };
 
+	const buttons = ['?', 'B', '0', '1', '2', '3', '5', '8', '13'];
 	function changeClickedButton(n: number) {
 		buttonSelected = buttonSelected.map((val, idx) => idx == n);
-		// send result to backend
+
+		const res = fetch(SERVER + 'player', {
+			method: 'POST',
+			body: JSON.stringify({
+				id: playerId,
+				room: roomId,
+				status: n
+			}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
 	}
 
 	function onClear() {
@@ -48,25 +44,68 @@
 	function onShow() {
 		// send show to backend
 	}
-	const SSE_LOCAL_URL = 'http://127.0.0.1:3000/sse?room=101&name=juliano';
-	onMount(() => {
+
+	function jsonIsPlayerResponseType(o: any): o is PlayerResponse {
+		return 'id' in o;
+	}
+	const SERVER = 'http://127.0.0.1:3000/';
+	const SSE_LOCAL_URL =
+		'http://127.0.0.1:3000/sse?room=' +
+		encodeURIComponent(roomId) +
+		'&name=' +
+		encodeURIComponent(name);
+
+	function setupSSE() {
 		const source = new EventSource(SSE_LOCAL_URL);
 		source.onopen = () => {
 			console.log('event opened');
 		};
 		source.onmessage = ({ data }) => {
-			state = JSON.parse(data);
+			const o: JSON = JSON.parse(data);
+
+			if (jsonIsPlayerResponseType(o)) {
+				playerId = o.id;
+			} else if ('players' in o) {
+				state = Convert.toPlayers(data);
+			}
+
 			console.log('onmessage ', data);
 		};
 		source.onerror = (error) => console.log('source error ', error);
+		return source;
+	}
+	onMount(() => {
+		const source = setupSSE();
 
 		return () => {
 			if (source.readyState === 1) {
 				source.close();
 			}
-			console.log('HERE');
 		};
 	});
+
+	function updateName(name: string) {
+		clearTimeout(timeoutId);
+		if (name == '') {
+			return;
+		}
+
+		timeoutId = setTimeout(() => {
+			fetch(SERVER + 'player', {
+				method: 'POST',
+				body: JSON.stringify({
+					id: playerId,
+					room: roomId,
+					name: name
+				}),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+		}, 2000);
+	}
+
+	$: updateName(name);
 </script>
 
 <svelte:head>
@@ -75,81 +114,48 @@
 </svelte:head>
 
 <section>
+	<input
+		type="text"
+		class="
+	  form-control
+	  block
+	  w-min
+	  px-3
+	  py-1.5
+	  text-base
+	  font-normal
+	  text-gray-700/50
+	  bg-white/10 bg-clip-padding
+	  border-b border-solid border-gray-300
+	  rounded
+	  transition
+	  ease-in-out
+	  m-0
+	  focus:text-gray-700/80 focus:bg-white/30 focus:border-blue-600 focus:outline-none
+	"
+		id="exampleFormControlInput1"
+		placeholder="Your name here"
+		bind:value={name}
+	/>
 	<div class="flex min-h-screen flex-col overflow-hidden py-6 sm:py-12 max-w-xl m-auto">
 		<div class="relative px-6 py-5 shadow-md ring-1 ring-gray-900/5 w-full sm:rounded-lg sm:px-10">
-			<div class="flex flex-wrap justify-around">
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[0]}
-					class:shadow-5xl={buttonSelected[0]}
-					on:click={() => changeClickedButton(0)}
-				>
-					<img src={Question} class="w-[1.1em]" alt="Welcome" />
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[1]}
-					class:shadow-5xl={buttonSelected[1]}
-					on:click={() => changeClickedButton(1)}
-				>
-					<img src={Beer} alt="Welcome" />
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[2]}
-					class:shadow-5xl={buttonSelected[2]}
-					on:click={() => changeClickedButton(2)}
-				>
-					<p>0</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[3]}
-					class:shadow-5xl={buttonSelected[3]}
-					on:click={() => changeClickedButton(3)}
-				>
-					<p>1</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[4]}
-					class:shadow-5xl={buttonSelected[4]}
-					on:click={() => changeClickedButton(4)}
-				>
-					<p>2</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[5]}
-					class:shadow-5xl={buttonSelected[5]}
-					on:click={() => changeClickedButton(5)}
-				>
-					<p>3</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[6]}
-					class:shadow-5xl={buttonSelected[6]}
-					on:click={() => changeClickedButton(6)}
-				>
-					<p>5</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[7]}
-					class:shadow-5xl={buttonSelected[7]}
-					on:click={() => changeClickedButton(7)}
-				>
-					<p>8</p>
-				</button>
-				<button
-					class="item"
-					class:bg-yellow-200={buttonSelected[8]}
-					class:shadow-5xl={buttonSelected[8]}
-					on:click={() => changeClickedButton(8)}
-				>
-					<p>13</p>
-				</button>
+			<div class="flex flex-wrap justify-around" role="group">
+				{#each buttons as btn, i}
+					<button
+						class="item"
+						class:bg-yellow-200={buttonSelected[i]}
+						class:shadow-5xl={buttonSelected[i]}
+						on:click={() => changeClickedButton(i)}
+					>
+						{#if btn == '?'}
+							<img src={Question} class="w-[1.1em]" alt="Question Mark" />
+						{:else if btn == 'B'}
+							<img src={Beer} alt="Welcome" />
+						{:else}
+							<p>{btn}</p>
+						{/if}
+					</button>
+				{/each}
 			</div>
 		</div>
 
@@ -187,12 +193,12 @@
 								>
 									{#if player.status == -1}
 										<img src={Beer} alt="Welcome" />
-									{:else if player.status == -2}
+									{:else if buttons[player.status] == 'B'}
 										<img src={Dash} alt="Welcome" />
-									{:else if player.status == -3}
+									{:else if player.status == -2}
 										<img src={Bees} alt="Welcome" class="p-1 pr-2" />
 									{:else}
-										<p>{player.status}</p>
+										<p>{buttons[player.status]}</p>
 									{/if}
 								</div>
 							</td>

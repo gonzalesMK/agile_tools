@@ -53,7 +53,7 @@ func TestSubscribeToRoom(t *testing.T) {
 	service.broadcaster.SendMessage(123, []byte(""))
 
 	// Assert channel has message
-	assert.Equal(t, "data: {\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}\n\ndata: \n\n", string(b.Bytes()))
+	assert.Equal(t, "data: {\"id\":1}\n\ndata: {\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}\n\ndata: \n\n", string(b.Bytes()))
 }
 
 func TestDeletePlayer(t *testing.T) {
@@ -94,7 +94,7 @@ func TestBroadcastRoomStatus(t *testing.T) {
 	service := ServiceMock.NewServiceWithChannel(repo, &channel)
 
 	users := []Users{
-		Users{ID: 1, Name: "Santhia Witchy", Status: -3},
+		{ID: 1, Name: "Santhia Witchy", Status: -3},
 	}
 	repo.
 		EXPECT().
@@ -145,7 +145,7 @@ func TestUpsertPlayer(t *testing.T) {
 
 	repo.
 		EXPECT().
-		Save(gomock.Eq(user)).
+		UpdateFieldById(gomock.Eq(uint(123)), gomock.Eq(user)).
 		Return(nil)
 
 	repo.
