@@ -24,10 +24,7 @@ func TestSubscribe(t *testing.T) {
 		s: service,
 	}
 
-	request := &PlayerSubscribe{
-		Name:   "developer",
-		RoomID: uint(123),
-	}
+	request := PlayerSubscribeMock{}.AllFields()
 
 	service.
 		EXPECT().
@@ -37,7 +34,7 @@ func TestSubscribe(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", controller.UpdateState)
 
-	req := httptest.NewRequest("GET", "/?room=123&name=developer", nil)
+	req := httptest.NewRequest("GET", "/?room=12&name=Santhia%20Witchy", nil)
 
 	resp, err := app.Test(req, 1000)
 
@@ -46,6 +43,40 @@ func TestSubscribe(t *testing.T) {
 	assert.Equal(t, "AB", string(bytes))
 }
 
+func TestUpdateRoomController(t *testing.T) {
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service := NewMockServiceInterface(ctrl)
+	controller := Controller{
+		s: service,
+	}
+
+	request := RoomRequestMock{}.AllFields()
+	response := RoomResponseMocks{}.AllFields()
+
+	service.
+		EXPECT().
+		UpdateRoom(gomock.Eq(request)).
+		Return(response, nil)
+
+	app := fiber.New()
+	app.Post("/", controller.UpdateRoom)
+
+	content, err := json.Marshal(request)
+	assert.Nil(t, err)
+	fmt.Println(string(content))
+	req := httptest.NewRequest("POST", "/", bytes.NewReader(content))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req, 1000)
+
+	assert.Nil(t, err)
+
+	bytes, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, "{\"id\":12}", string(bytes))
+}
 func TestUpsertPlayerController(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
@@ -65,7 +96,7 @@ func TestUpsertPlayerController(t *testing.T) {
 		Return(response, nil)
 
 	app := fiber.New()
-	app.Post("/", controller.UpsertPlayer)
+	app.Post("/", controller.UpdatePlayer)
 
 	content, err := json.Marshal(request)
 	assert.Nil(t, err)

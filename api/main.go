@@ -26,7 +26,9 @@ func InitApp(db *gorm.DB) *fiber.App {
 	}
 
 	app.Get("/sse", controller.UpdateState)
-	app.Post("/player", controller.UpsertPlayer)
+	app.Post("/clear", controller.ClearRoom)
+	app.Post("/player", controller.UpdatePlayer)
+	app.Post("/room", controller.UpdateRoom)
 
 	return app
 
@@ -38,6 +40,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	db.Save(new(Users))
 	app := InitApp(db)
 	app.Listen(":3000")
 }

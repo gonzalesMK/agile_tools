@@ -4,31 +4,42 @@
 	import Dash from '$lib/images/dash.svg';
 	import Question from '$lib/images/question-mark.svg';
 	import { onMount } from 'svelte';
-	import { Convert, type Players } from '$lib/playersDto';
+	import { Convert, type Player, type Players } from '$lib/playersDto';
 
 	let buttonSelected = new Array(9).fill(0);
 
 	type PlayerResponse = { id: number };
 
-	let playerId = 0;
 	let name = 'juliano';
 	let roomId = 1;
 	let timeoutId: NodeJS.Timeout;
 
+	let player: Player = {
+		id: 0,
+		name: 'juliano',
+		status: -2,
+		room: 1
+	};
 	let state: Players = {
 		players: []
 	};
 
 	const buttons = ['?', 'B', '0', '1', '2', '3', '5', '8', '13'];
+
 	function changeClickedButton(n: number) {
 		buttonSelected = buttonSelected.map((val, idx) => idx == n);
 
-		const res = fetch(SERVER + 'player', {
+		player.status = n;
+		player = player;
+	}
+
+	function onClear() {
+		buttonSelected = buttonSelected.fill(0);
+		// send clear to backend
+		fetch(SERVER + 'clear', {
 			method: 'POST',
 			body: JSON.stringify({
-				id: playerId,
-				room: roomId,
-				status: n
+				room: player.room
 			}),
 			headers: {
 				'Content-Type': 'application/json'
@@ -36,13 +47,36 @@
 		});
 	}
 
-	function onClear() {
-		buttonSelected = buttonSelected.fill(0);
-		// send clear to backend
+	function UpdatePlayer(p: Player) {
+		if (p.id == 0) {
+			return;
+		}
+		fetch(SERVER + 'player', {
+			method: 'POST',
+			body: JSON.stringify({
+				id: p.id,
+				room: p.room,
+				status: p.status,
+				name: p.name
+			}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
 	}
 
 	function onShow() {
 		// send show to backend
+		const res = fetch(SERVER + 'room', {
+			method: 'POST',
+			body: JSON.stringify({
+				id: roomId,
+				show: true
+			}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
 	}
 
 	function jsonIsPlayerResponseType(o: any): o is PlayerResponse {
@@ -64,7 +98,7 @@
 			const o: JSON = JSON.parse(data);
 
 			if (jsonIsPlayerResponseType(o)) {
-				playerId = o.id;
+				player.id = o.id;
 			} else if ('players' in o) {
 				state = Convert.toPlayers(data);
 			}
@@ -90,22 +124,14 @@
 			return;
 		}
 
+		player.name = name;
 		timeoutId = setTimeout(() => {
-			fetch(SERVER + 'player', {
-				method: 'POST',
-				body: JSON.stringify({
-					id: playerId,
-					room: roomId,
-					name: name
-				}),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+			player = player;
 		}, 2000);
 	}
 
 	$: updateName(name);
+	$: UpdatePlayer(player);
 </script>
 
 <svelte:head>
@@ -184,21 +210,25 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-300/50 leading-10">
-					{#each state.players as player}
+					{#each state.players as p}
 						<tr>
-							<td>{player.name}</td>
+							{#if p.id == player.id}
+								<td>{player.name}</td>
+							{:else}
+								<td>{p.name}</td>
+							{/if}
 							<td>
 								<div
 									class="my-1 flex h-[3em] w-[2.5em] place-items-center justify-center rounded-xl border-2 border-solid border-y-yellow-400 border-x-yellow-500 shadow-xl ring-1 ring-gray-900/5"
 								>
-									{#if player.status == -1}
-										<img src={Beer} alt="Welcome" />
-									{:else if buttons[player.status] == 'B'}
-										<img src={Dash} alt="Welcome" />
-									{:else if player.status == -2}
-										<img src={Bees} alt="Welcome" class="p-1 pr-2" />
+									{#if p.status == -2}
+										<img src={Dash} alt="Dash" />
+									{:else if p.status == -1}
+										<img src={Bees} alt="Bee" class="p-1 pr-2" />
+									{:else if buttons[p.status] == 'B'}
+										<img src={Beer} alt="Beer" />
 									{:else}
-										<p>{buttons[player.status]}</p>
+										<p>{buttons[p.status]}</p>
 									{/if}
 								</div>
 							</td>

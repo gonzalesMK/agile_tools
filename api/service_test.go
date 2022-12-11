@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSubscribeToRoom(t *testing.T) {
+func TestSubscribeToRoomAndShow(t *testing.T) {
 	//
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -36,8 +36,15 @@ func TestSubscribeToRoom(t *testing.T) {
 
 	repo.
 		EXPECT().
-		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
 		Return(users, nil)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		DoAndReturn(func(model *Room, id uint) error {
+			model.Show = true
+			return nil
+		})
 
 	subsFunc, err := service.Subscribe(playerSubscribe)
 
@@ -50,7 +57,7 @@ func TestSubscribeToRoom(t *testing.T) {
 
 	go subsFunc(w)
 
-	service.broadcaster.SendMessage(123, []byte(""))
+	service.broadcaster.SendMessage(12, []byte(""))
 
 	// Assert channel has message
 	assert.Equal(t, "data: {\"id\":1}\n\ndata: {\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}\n\ndata: \n\n", string(b.Bytes()))
@@ -75,13 +82,25 @@ func TestDeletePlayer(t *testing.T) {
 	}
 	repo.
 		EXPECT().
-		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
 		Return(users, nil)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		Return(nil)
 
-	service.DeletePlayer(1, 123)
-
+	if err := service.DeletePlayer(1, 12); err != nil {
+		assert.Nil(t, err)
+		return
+	}
 	assert.Equal(t, len(channel), 0)
-	assert.Nil(t, service.broadcaster.rooms[123].channels[1])
+	room, exists := service.broadcaster.rooms[12]
+
+	if !exists {
+		assert.True(t, exists)
+		return
+	}
+	assert.Nil(t, room.channels[1])
 }
 
 func TestBroadcastRoomStatus(t *testing.T) {
@@ -95,21 +114,29 @@ func TestBroadcastRoomStatus(t *testing.T) {
 
 	users := []Users{
 		{ID: 1, Name: "Santhia Witchy", Status: -3},
+		{ID: 2, Name: "Another One", Status: 0},
 	}
 	repo.
 		EXPECT().
-		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
 		Return(users, nil)
 
-	err := service.BroadcastRoomStatus(123)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		Return(nil)
+
+	if err := service.BroadcastRoomStatus(12); err != nil {
+		assert.Nil(t, err)
+		return
+	}
 
 	result := <-channel
 
-	assert.Nil(t, err)
-	assert.Equal(t, "{\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3}]}", string(result))
+	assert.Equal(t, "{\"players\":[{\"id\":1,\"name\":\"Santhia Witchy\",\"status\":-3},{\"id\":2,\"name\":\"Another One\",\"status\":-1}]}", string(result))
 }
 
-func TestBroadcastRoomStatusEmpty(t *testing.T) {
+func TestBroadcastRoomStatusEmptyWorks(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -120,20 +147,25 @@ func TestBroadcastRoomStatusEmpty(t *testing.T) {
 
 	repo.
 		EXPECT().
-		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
 		Return(nil, nil)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		Return(nil)
 
-	err := service.BroadcastRoomStatus(123)
+	err := service.BroadcastRoomStatus(12)
+	assert.Nil(t, err)
 
 	result := <-channel
 
-	assert.Nil(t, err)
 	assert.Equal(t, "{\"players\":[]}", string(result))
 }
 
-func TestUpsertPlayer(t *testing.T) {
+func TestUpdatePlayerWorks(t *testing.T) {
 
 	user := UserMocks{}.AllFields()
+	user.Room = Room{}
 	request := PlayerRequestMocks{}.AllFields()
 
 	ctrl := gomock.NewController(t)
@@ -150,13 +182,52 @@ func TestUpsertPlayer(t *testing.T) {
 
 	repo.
 		EXPECT().
-		GetPlayersFromRoom(gomock.Eq(uint(123))).
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
 		Return(nil, nil)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		Return(nil)
 
 	player, err := service.UpsertPlayer(request)
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint(123), player.ID)
+
+	resp := <-(*&channel)
+	assert.Equal(t, "{\"players\":[]}", string(resp))
+}
+
+func TestUpdateRoomWorks(t *testing.T) {
+
+	request := RoomRequestMock{}.AllFields()
+	room := RoomMock{}.AllFields()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := NewMockRepoInterface(ctrl)
+	channel := make(chan []byte, 1)
+	service := ServiceMock.NewServiceWithChannel(repo, &channel)
+
+	repo.
+		EXPECT().
+		UpdateFieldById(gomock.Eq(uint(12)), gomock.Eq(room)).
+		Return(nil)
+
+	repo.
+		EXPECT().
+		GetPlayersFromRoom(gomock.Eq(uint(12))).
+		Return(nil, nil)
+	repo.
+		EXPECT().
+		GetOneById(gomock.AssignableToTypeOf(new(Room)), gomock.Eq(uint(12))).
+		Return(nil)
+
+	player, err := service.UpdateRoom(request)
+
+	assert.Nil(t, err)
+	assert.Equal(t, uint(12), player.ID)
 
 	resp := <-(*&channel)
 	assert.Equal(t, "{\"players\":[]}", string(resp))

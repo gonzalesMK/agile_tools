@@ -9,7 +9,7 @@ import (
 func TestAddSubscriber(t *testing.T) {
 
 	b := Broadcaster{
-		rooms: map[uint]*Room{},
+		rooms: map[uint]*RoomMap{},
 	}
 
 	channel1 := b.AddSubscriber(10, 15)
@@ -30,7 +30,7 @@ func TestAddSubscriber(t *testing.T) {
 func TestDeleteSubscriber(t *testing.T) {
 
 	b := Broadcaster{
-		rooms: map[uint]*Room{},
+		rooms: map[uint]*RoomMap{},
 	}
 
 	b.AddSubscriber(10, 15)
@@ -50,7 +50,7 @@ func TestDeleteSubscriber(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 
 	b := Broadcaster{
-		rooms: map[uint]*Room{},
+		rooms: map[uint]*RoomMap{},
 	}
 	channel1 := b.AddSubscriber(10, 15)
 	channel2 := b.AddSubscriber(10, 16)

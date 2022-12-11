@@ -33,6 +33,20 @@ func (m *MockRepoInterface) EXPECT() *MockRepoInterfaceMockRecorder {
 	return m.recorder
 }
 
+// ClearPlayerStatusInRoom mocks base method.
+func (m *MockRepoInterface) ClearPlayerStatusInRoom(roomID uint, statusID int8) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearPlayerStatusInRoom", roomID, statusID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearPlayerStatusInRoom indicates an expected call of ClearPlayerStatusInRoom.
+func (mr *MockRepoInterfaceMockRecorder) ClearPlayerStatusInRoom(roomID, statusID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearPlayerStatusInRoom", reflect.TypeOf((*MockRepoInterface)(nil).ClearPlayerStatusInRoom), roomID, statusID)
+}
+
 // DeleteById mocks base method.
 func (m *MockRepoInterface) DeleteById(model interface{}, id uint) error {
 	m.ctrl.T.Helper()
@@ -45,6 +59,20 @@ func (m *MockRepoInterface) DeleteById(model interface{}, id uint) error {
 func (mr *MockRepoInterfaceMockRecorder) DeleteById(model, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteById", reflect.TypeOf((*MockRepoInterface)(nil).DeleteById), model, id)
+}
+
+// GetOneById mocks base method.
+func (m *MockRepoInterface) GetOneById(model interface{}, id uint) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOneById", model, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetOneById indicates an expected call of GetOneById.
+func (mr *MockRepoInterfaceMockRecorder) GetOneById(model, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOneById", reflect.TypeOf((*MockRepoInterface)(nil).GetOneById), model, id)
 }
 
 // GetPlayersFromRoom mocks base method.

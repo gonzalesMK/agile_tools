@@ -1,15 +1,17 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 )
 
 type Broadcaster struct {
-	rooms map[uint]*Room
+	rooms map[uint]*RoomMap
 	mu    sync.RWMutex
 }
 
-type Room struct {
+type RoomMap struct {
 	channels map[uint]*chan []byte
 	mu       sync.RWMutex
 }
@@ -17,7 +19,7 @@ type Room struct {
 func NewBroadcaster() *Broadcaster {
 
 	return &Broadcaster{
-		rooms: map[uint]*Room{},
+		rooms: map[uint]*RoomMap{},
 		mu:    sync.RWMutex{},
 	}
 }
@@ -30,7 +32,7 @@ func (s *Broadcaster) AddSubscriber(roomId uint, userId uint) *chan []byte {
 	s.mu.RUnlock()
 
 	if !exist {
-		room = &Room{
+		room = &RoomMap{
 			channels: map[uint]*chan []byte{},
 			mu:       sync.RWMutex{},
 		}
@@ -47,22 +49,29 @@ func (s *Broadcaster) AddSubscriber(roomId uint, userId uint) *chan []byte {
 	return &channel
 }
 
-func (b *Broadcaster) SendMessage(roomId uint, message []byte) {
+func (b *Broadcaster) SendMessage(roomId uint, message []byte) error {
 
-	room := b.rooms[roomId]
+	room, exists := b.rooms[roomId]
 
+	if !exists {
+		return errors.New(fmt.Sprint(roomId) + " not found")
+	}
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 	for key := range room.channels {
 		(*room.channels[key]) <- message
 	}
 
+	return nil
 }
 
-func (b *Broadcaster) DeleteSubscriber(roomId uint, userId uint) {
+func (b *Broadcaster) DeleteSubscriber(roomId uint, userId uint) error {
 	// handle subscriber does not exist
 
-	room := b.rooms[roomId]
+	room, exists := b.rooms[roomId]
+	if !exists {
+		return errors.New(fmt.Sprint(roomId) + " not found")
+	}
 
 	room.mu.Lock()
 
@@ -70,4 +79,6 @@ func (b *Broadcaster) DeleteSubscriber(roomId uint, userId uint) {
 	close(*channel)
 	delete(room.channels, userId)
 	room.mu.Unlock()
+
+	return nil
 }

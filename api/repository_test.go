@@ -24,7 +24,7 @@ func (s *e2eTestSuite) SetupTest() {
 
 	s.db = db
 
-	db.AutoMigrate(&Users{})
+	db.AutoMigrate(&Users{}, &Room{})
 	s.Require().NoError(err)
 
 }
@@ -41,8 +41,11 @@ func (s *e2eTestSuite) TestSaveWorks() {
 	s.Assertions.Nil(err)
 
 	savedUsers := new([]Users)
-	result := s.db.Find(savedUsers)
+	result := s.db.Preload("Room").Find(savedUsers)
 	s.Assertions.Equal(int64(1), result.RowsAffected)
+
+	savedUser := (*savedUsers)[0]
+	s.Assertions.Equal(savedUser.RoomID, savedUser.Room.ID)
 
 }
 
@@ -83,5 +86,27 @@ func (s *e2eTestSuite) TestUpdateDoesNotCreateModel() {
 	savedUsers := new([]Users)
 	result := s.db.Find(savedUsers)
 	s.Assertions.Equal(int64(0), result.RowsAffected)
+
+}
+
+func (s *e2eTestSuite) TestClearPlayerStatusInRoom() {
+
+	repo := Repository{
+		db: s.db,
+	}
+
+	user := UserMocks{}.AllFields()
+
+	err := repo.Save(user)
+	s.Assertions.Nil(err)
+
+	err = repo.ClearPlayerStatusInRoom(user.RoomID, 10)
+	s.Assertions.Nil(err)
+
+	savedUsers := new([]Users)
+	result := s.db.Find(savedUsers)
+	s.Assertions.Equal(int64(1), result.RowsAffected)
+	savedUser := (*savedUsers)[0]
+	s.Assertions.Equal(int8(10), savedUser.Status)
 
 }

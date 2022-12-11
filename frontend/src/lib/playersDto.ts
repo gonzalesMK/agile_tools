@@ -15,6 +15,7 @@ export interface Player {
     id: number;
     name: string;
     status: number;
+    room: number;
 }
 
 // Converts JSON strings to/from your types

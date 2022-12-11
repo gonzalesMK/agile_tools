@@ -34,6 +34,20 @@ func (m *MockServiceInterface) EXPECT() *MockServiceInterfaceMockRecorder {
 	return m.recorder
 }
 
+// ClearRoom mocks base method.
+func (m *MockServiceInterface) ClearRoom(roomClearRequest *RoomClearRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearRoom", roomClearRequest)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearRoom indicates an expected call of ClearRoom.
+func (mr *MockServiceInterfaceMockRecorder) ClearRoom(roomClearRequest interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearRoom", reflect.TypeOf((*MockServiceInterface)(nil).ClearRoom), roomClearRequest)
+}
+
 // Subscribe mocks base method.
 func (m *MockServiceInterface) Subscribe(playerSubscribe *PlayerSubscribe) (func(*bufio.Writer), error) {
 	m.ctrl.T.Helper()
@@ -47,6 +61,21 @@ func (m *MockServiceInterface) Subscribe(playerSubscribe *PlayerSubscribe) (func
 func (mr *MockServiceInterfaceMockRecorder) Subscribe(playerSubscribe interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockServiceInterface)(nil).Subscribe), playerSubscribe)
+}
+
+// UpdateRoom mocks base method.
+func (m *MockServiceInterface) UpdateRoom(roomRequest *RoomRequest) (*RoomResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRoom", roomRequest)
+	ret0, _ := ret[0].(*RoomResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateRoom indicates an expected call of UpdateRoom.
+func (mr *MockServiceInterfaceMockRecorder) UpdateRoom(roomRequest interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRoom", reflect.TypeOf((*MockServiceInterface)(nil).UpdateRoom), roomRequest)
 }
 
 // UpsertPlayer mocks base method.

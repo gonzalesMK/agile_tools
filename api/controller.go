@@ -12,6 +12,12 @@ type Controller struct {
 	s ServiceInterface
 }
 
+type RoomClearRequest struct {
+	RoomID uint `json:"room"`
+}
+type RoomResponse struct {
+	ID uint `json:"id"`
+}
 type PlayerResponse struct {
 	ID uint `json:"id"`
 }
@@ -23,6 +29,11 @@ type PlayerRequest struct {
 	Status int8   `json:"status"`
 }
 
+type RoomRequest struct {
+	ID   uint `json:"id"`
+	Show bool `json:"show"`
+}
+
 type PlayerSubscribe struct {
 	Name   string `query:"name"`
 	RoomID uint   `query:"room"`
@@ -30,11 +41,40 @@ type PlayerSubscribe struct {
 
 //go:generate mockgen -source=$GOFILE -destination=mock_service_test.go -package=main
 type ServiceInterface interface {
+	ClearRoom(roomClearRequest *RoomClearRequest) error
+	UpdateRoom(roomRequest *RoomRequest) (*RoomResponse, error)
 	UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, error)
 	Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Writer), error)
 }
 
-func (s *Controller) UpsertPlayer(c *fiber.Ctx) error {
+func (s *Controller) ClearRoom(c *fiber.Ctx) error {
+
+	request := new(RoomClearRequest)
+	if err := c.BodyParser(request); err != nil {
+		return err
+	}
+
+	s.s.ClearRoom(request)
+
+	return nil
+}
+func (s *Controller) UpdateRoom(c *fiber.Ctx) error {
+	request := new(RoomRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	resp, err := s.s.UpdateRoom(request)
+
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+func (s *Controller) UpdatePlayer(c *fiber.Ctx) error {
 	request := new(PlayerRequest)
 
 	if err := c.BodyParser(request); err != nil {
@@ -42,12 +82,12 @@ func (s *Controller) UpsertPlayer(c *fiber.Ctx) error {
 		return err
 	}
 
-	playerResponse, err := s.s.UpsertPlayer(request)
+	resp, err := s.s.UpsertPlayer(request)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(playerResponse)
+	return c.JSON(resp)
 }
 
 func (s *Controller) UpdateState(c *fiber.Ctx) error {

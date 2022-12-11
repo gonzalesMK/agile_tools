@@ -10,6 +10,10 @@ import (
 	"github.com/ulule/deepcopier"
 )
 
+var (
+	DEFAULT_STATUS = int8(-2)
+)
+
 type Service struct {
 	repo        RepoInterface
 	mu          sync.RWMutex
@@ -18,10 +22,44 @@ type Service struct {
 
 //go:generate mockgen -source=$GOFILE -destination=mock_repository_test.go -package=main
 type RepoInterface interface {
+	GetOneById(model interface{}, id uint) error
 	Save(interface{}) error
 	UpdateFieldById(id uint, content interface{}) error
 	DeleteById(model interface{}, id uint) error
 	GetPlayersFromRoom(uint) ([]Users, error)
+	ClearPlayerStatusInRoom(roomID uint, statusID int8) error
+}
+
+func (s *Service) ClearRoom(request *RoomClearRequest) error {
+
+	if err := s.repo.ClearPlayerStatusInRoom(request.RoomID, DEFAULT_STATUS); err != nil {
+		return err
+	}
+
+	if err := s.repo.UpdateFieldById(request.RoomID, &Room{
+		ID:   request.RoomID,
+		Show: false,
+	}); err != nil {
+		return err
+	}
+	s.BroadcastRoomStatus(request.RoomID)
+
+	return nil
+}
+
+func (s *Service) UpdateRoom(roomRequest *RoomRequest) (*RoomResponse, error) {
+
+	var room Room
+	deepcopier.Copy(roomRequest).To(&room)
+
+	err := s.repo.UpdateFieldById(room.ID, &room)
+
+	var response RoomResponse
+	deepcopier.Copy(&room).To(&response)
+
+	s.BroadcastRoomStatus(room.ID)
+
+	return &response, err
 }
 
 func (s *Service) UpsertPlayer(playerRequest *PlayerRequest) (*PlayerResponse, error) {
@@ -43,9 +81,13 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 
 	var user Users
 	deepcopier.Copy(playerSubscribe).To(&user)
+	user.Status = DEFAULT_STATUS
+	user.Room = Room{ID: user.RoomID}
 
 	err := s.repo.Save(&user)
+
 	if err != nil {
+		log.Errorf("Not able to save new user %s", err)
 		return nil, err
 	}
 
@@ -111,7 +153,10 @@ func (s *Service) DeletePlayer(playerID, roomID uint) error {
 	if err := s.repo.DeleteById(&Users{}, playerID); err != nil {
 		return err
 	}
-	s.broadcaster.DeleteSubscriber(roomID, playerID)
+
+	if err := s.broadcaster.DeleteSubscriber(roomID, playerID); err != nil {
+		return err
+	}
 	return s.BroadcastRoomStatus(roomID)
 }
 
@@ -128,18 +173,31 @@ func (s *Service) BroadcastRoomStatus(roomId uint) error {
 		return err
 	}
 
-	s.broadcaster.SendMessage(roomId, content)
-	return nil
+	err = s.broadcaster.SendMessage(roomId, content)
+	return err
 }
 
 func (s *Service) GetRoomStatus(roomId uint) (*State, error) {
 
-	users, err := s.repo.GetPlayersFromRoom(roomId)
+	room := new(Room)
+	if err := s.repo.GetOneById(room, roomId); err != nil {
+		log.Errorf("Not able to found room with Id: %d. Error %s ", roomId, err)
+		return nil, err
+	}
 
+	users, err := s.repo.GetPlayersFromRoom(roomId)
 	if err != nil {
 		return nil, err
 	}
 
+	// In case the room is not in show status, all status are -1
+	if !room.Show {
+		for i := 0; i < len(users); i++ {
+			if users[i].Status >= 0 {
+				users[i].Status = -1
+			}
+		}
+	}
 	state := s.convertUsersToState(users)
 
 	return state, nil
