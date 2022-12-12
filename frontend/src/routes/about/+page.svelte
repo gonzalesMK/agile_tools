@@ -1,26 +1,30 @@
-<svelte:head>
-	<title>About</title>
-	<meta name="description" content="About this app" />
-</svelte:head>
+<script>
+	import { onMount } from 'svelte';
+	let time = '';
 
-<div class="text-column">
-	<h1>About this app</h1>
+	onMount(() => {
+		const evtSrc = new EventSource('http://localhost:3500/event');
+		evtSrc.onmessage = function (event) {
+			time = event.data;
+		};
 
-	<p>
-		This is a <a href="https://kit.svelte.dev">SvelteKit</a> app. You can make your own by typing the
-		following into your command line and following the prompts:
-	</p>
+		evtSrc.onerror = function (event) {
+			console.log(event);
+		};
+	});
 
-	<pre>npm create svelte@latest</pre>
+	async function getTime() {
+		const res = await fetch('http://localhost:3500/time');
+		if (res.status !== 200) {
+			console.log('Could not connect to the server');
+		} else {
+			console.log('OK');
+		}
+	}
+</script>
 
-	<p>
-		The page you're looking at is purely static HTML, with no client-side interactivity needed.
-		Because of that, we don't need to load any JavaScript. Try viewing the page's source, or opening
-		the devtools network panel and reloading.
-	</p>
-
-	<p>
-		The <a href="/sverdle">Sverdle</a> page illustrates SvelteKit's data loading and form handling. Try
-		using it with JavaScript disabled!
-	</p>
-</div>
+<main>
+	<h1>Server Sent Events</h1>
+	<button on:click={getTime}>Get Time</button>
+	<p>Time: {time}</p>
+</main>

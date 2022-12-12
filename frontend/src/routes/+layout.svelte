@@ -4,7 +4,7 @@
 	import '../app.css';
 </script>
 
-<div class="app">
+<div class="app bg-yellow-100">
 	<Header />
 
 	<main>
@@ -21,9 +21,6 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
-		background-image: url('$lib/images/beams.jpg');
-		background-size: cover;
-		background-repeat: no-repeat;
 	}
 
 	main {
