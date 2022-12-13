@@ -43,5 +43,5 @@ func main() {
 
 	db.Save(new(Users))
 	app := InitApp(db)
-	app.Listen(":3000")
+	app.Listen(":3001")
 }

@@ -8,18 +8,18 @@
 	$: nameStore.set(name);
 
 	function onClick() {
-		goto(roomId.toString());
+		goto('/poker?roomId=' + roomId.toString());
 	}
 </script>
 
 <svelte:head>
 	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<meta name="description" content="Bees Agile Tools App" />
 </svelte:head>
 
 <section>
 	<div
-		class="relative flex min-h-screen text-gray-800 antialiased flex-col justify-center overflow-hidden py-6 sm:py-12"
+		class="relative flex text-gray-800 antialiased flex-col justify-center overflow-hidden py-6 sm:py-12"
 	>
 		<div class="relative py-3 sm:w-96 mx-auto text-center">
 			<span class="text-2xl font-light ">Select a Room to Join</span>
