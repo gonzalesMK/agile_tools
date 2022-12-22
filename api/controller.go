@@ -37,6 +37,7 @@ type RoomRequest struct {
 type PlayerSubscribe struct {
 	Name   string `query:"name"`
 	RoomID uint   `query:"room"`
+	ID     uint   `query:"player"`
 }
 
 //go:generate mockgen -source=$GOFILE -destination=mock_service_test.go -package=main
@@ -105,7 +106,6 @@ func (s *Controller) UpdateState(c *fiber.Ctx) error {
 
 	updater, dbErr := s.s.Subscribe(conf)
 	if dbErr != nil {
-		log.Error(dbErr)
 		return dbErr
 	}
 

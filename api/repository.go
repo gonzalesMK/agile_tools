@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -16,16 +18,22 @@ func (r *Repository) GetOneById(model interface{}, id uint) error {
 
 func (r *Repository) Save(model interface{}) error {
 
-	return r.db.Save(model).Error
+	return r.db.Create(model).Error
 }
 
 func (r *Repository) UpdateFieldById(id uint, content interface{}) error {
 
+	if id <= 1 {
+		return errors.New("Cannot update ID 0")
+	}
 	return r.db.Where("id", id).Select("*").Updates(content).Error
 
 }
 func (r *Repository) DeleteById(model interface{}, id uint) error {
 
+	if id <= 1 {
+		return errors.New("Cannot delete ID 0")
+	}
 	return r.db.Delete(model, id).Error
 
 }

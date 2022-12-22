@@ -3,7 +3,7 @@ package main
 type Users struct {
 	ID     uint `gorm:"primarykey"`
 	RoomID uint `gorm:"index"`
-	Room   Room `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Room   Room
 	Name   string
 	Status int8
 }

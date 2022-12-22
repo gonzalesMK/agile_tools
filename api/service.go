@@ -83,7 +83,6 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 	deepcopier.Copy(playerSubscribe).To(&user)
 	user.Status = DEFAULT_STATUS
 	user.Room = Room{ID: user.RoomID}
-
 	err := s.repo.Save(&user)
 
 	if err != nil {
@@ -98,7 +97,7 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 		go func() {
 			for {
 				timeout <- true
-				time.Sleep(time.Second)
+				time.Sleep(time.Millisecond * 100)
 			}
 		}()
 
@@ -120,13 +119,13 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 		for {
 			select {
 
-			case content := <-(*channel):
+			case content, opened := <-(*channel):
 				w.Write([]byte("data: "))
 				w.Write(content)
 				w.Write([]byte("\n\n"))
 				err := w.Flush()
 
-				if err != nil {
+				if (err != nil) || (!opened) {
 					break Loop
 				}
 
@@ -150,10 +149,14 @@ func (s *Service) Subscribe(playerSubscribe *PlayerSubscribe) (func(w *bufio.Wri
 
 func (s *Service) DeletePlayer(playerID, roomID uint) error {
 
-	if err := s.repo.DeleteById(&Users{}, playerID); err != nil {
+	if err := s.UnsubscribeChannel(playerID, roomID); err != nil {
 		return err
 	}
 
+	return s.repo.DeleteById(&Users{}, playerID)
+}
+
+func (s *Service) UnsubscribeChannel(playerID, roomID uint) error {
 	if err := s.broadcaster.DeleteSubscriber(roomID, playerID); err != nil {
 		return err
 	}

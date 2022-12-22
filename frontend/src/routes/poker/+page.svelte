@@ -1,15 +1,19 @@
 <script lang="ts">
-	import Bees from '$lib/images/bees.svg';
-	import Beer from '$lib/images/beer.svg';
-	import Dash from '$lib/images/dash.svg';
-	import Question from '$lib/images/question-mark.svg';
+	import Bees from '$lib/images/Bees.svelte';
+	import Beer from '$lib/images/Beer.svelte';
+	import Dash from '$lib/images/Dash.svelte';
+	import QuestionMark from '$lib/images/QuestionMark.svelte';
 	import { onMount } from 'svelte';
 	import { Convert, type Player, type Players } from '$lib/playersDto';
 	import nameStore from '$lib/stores/name';
+	import playerStore from '$lib/stores/players';
 	import { page } from '$app/stores';
 	import { env } from '$env/dynamic/public';
+	import { get } from 'svelte/store';
 	const SERVER = env.PUBLIC_API_URL;
 	let buttonSelected = new Array(9).fill(0);
+
+	let gEventSource: EventSource;
 
 	type PlayerResponse = { id: number };
 
@@ -84,37 +88,49 @@
 		return 'id' in o;
 	}
 
-	function setupSSE() {
-		player.room = Number($page.url.searchParams.get('roomId'));
-		const SSE_LOCAL_URL =
-			SERVER + 'sse?room=' + encodeURIComponent(player.room) + '&name=' + encodeURIComponent(name);
+	function getEventSource(url: string) {
+		let eventSource = new EventSource(url);
 
-		console.log(player);
-		const source = new EventSource(SSE_LOCAL_URL);
-
-		source.onmessage = ({ data }) => {
+		eventSource.onmessage = ({ data }) => {
 			const o: JSON = JSON.parse(data);
 
 			if (jsonIsPlayerResponseType(o)) {
 				player.id = o.id;
+				playerStore.update((map) => {
+					map.set(player.room.toString(), player.id.toString());
+					return map;
+				});
 			} else if ('players' in o) {
 				state = Convert.toPlayers(data);
 			}
-
-			console.log('onmessage ', data);
 		};
 
-		source.onerror = (error) => console.log('source error ', error);
+		eventSource.onerror = (error) => {
+			setTimeout(() => {
+				gEventSource = getEventSource(url);
+			}, 300);
+		};
+
+		return eventSource;
+	}
+	function setupSSE() {
+		player.room = Number($page.url.searchParams.get('roomId'));
+		const map = get(playerStore);
+
+		let subscribe_url =
+			SERVER + 'sse?room=' + encodeURIComponent(player.room) + '&name=' + encodeURIComponent(name);
+
+		const playerId = map.get(player.room.toString()) || '';
+
+		if (playerId != '') {
+			subscribe_url += '&player=' + playerId;
+		}
+		let source = getEventSource(subscribe_url);
+
 		return source;
 	}
 	onMount(() => {
-		const source = setupSSE();
-
-		return () => {
-			if (source.readyState === 1) {
-				source.close();
-			}
-		};
+		gEventSource = setupSSE();
 	});
 
 	function updateName(name: string) {
@@ -175,9 +191,9 @@
 						on:click={() => changeClickedButton(i)}
 					>
 						{#if btn == '?'}
-							<img src={Question} class="w-[1.1em]" alt="Question Mark" />
+							<QuestionMark />
 						{:else if btn == 'B'}
-							<img src={Beer} alt="Welcome" />
+							<Beer />
 						{:else}
 							<p>{btn}</p>
 						{/if}
@@ -223,11 +239,11 @@
 									class="my-1 flex h-[3em] w-[2.5em] place-items-center justify-center rounded-xl border-2 border-solid border-y-yellow-400 border-x-yellow-500 shadow-xl ring-1 ring-gray-900/5"
 								>
 									{#if p.status == -2}
-										<img src={Dash} alt="Dash" />
+										<Dash />
 									{:else if p.status == -1}
-										<img src={Bees} alt="Bee" class="p-1 pr-2" />
+										<Bees />
 									{:else if buttons[p.status] == 'B'}
-										<img src={Beer} alt="Beer" />
+										<Beer />
 									{:else}
 										<p>{buttons[p.status]}</p>
 									{/if}

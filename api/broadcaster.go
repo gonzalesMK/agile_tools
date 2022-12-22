@@ -70,15 +70,20 @@ func (b *Broadcaster) DeleteSubscriber(roomId uint, userId uint) error {
 
 	room, exists := b.rooms[roomId]
 	if !exists {
-		return errors.New(fmt.Sprint(roomId) + " not found")
+		return errors.New(fmt.Sprint(roomId) + " room not found")
 	}
 
 	room.mu.Lock()
 
-	channel := room.channels[userId]
-	close(*channel)
-	delete(room.channels, userId)
+	channel, exists := room.channels[userId]
+	if exists {
+		close(*channel)
+		delete(room.channels, userId)
+	}
 	room.mu.Unlock()
 
+	if !exists {
+		return errors.New(fmt.Sprint(userId) + " user not found")
+	}
 	return nil
 }
